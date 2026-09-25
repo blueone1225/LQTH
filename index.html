@@ -172,7 +172,7 @@ const scenes = {
     
     // 多分支結局選擇點
     branch_choice: {
-        img: "https://generativeai.pub/user_resource/watermarked_img_3973725070830619369.jpg",
+        img: "E8/dbed.png",
         text: "擊斃變異犬後，你們逃到了廢棄小屋門口。房屋內部傳來不尋常的怪異低吟聲，而神秘包裹開始冒出異樣熱氣...",
         choices: [
             { text: "【結局 1 分支】強行闖入房屋，堅守包裹等待救援", next: "end1" },
@@ -183,31 +183,31 @@ const scenes = {
 
     // 結局 1
     end1: {
-        img: "https://generativeai.pub/user_resource/watermarked_img_12000240877718187182.jpg",
+        img: "E8/ed1.png",
         text: "【結局一：毀滅守護者】\n你們闖入房屋堅守包裹，卻吸引了整群感染者包圍。救援直升機始終沒有出現...最終你們被淹沒在黑夜中。",
         choices: [{ text: "重新開始", action: () => reset(), next: "s1" }]
     },
     // 結局 2
     end2: {
-        img: "https://generativeai.pub/user_resource/watermarked_img_868131843336331006.jpg",
+        img: "E8/ed2.png",
         text: "【結局二：逃離噩夢】\n你果斷拋棄包裹並拉著米歇爾的手奔向山林，成功在拉昆市全面封鎖前逃離。雖然淪為通緝犯，但你們保住了性命與未出生孩子。",
         choices: [{ text: "重新開始", action: () => reset(), next: "s1" }]
     },
     // 結局 3
     end3: {
-        img: "https://generativeai.pub/user_resource/watermarked_img_10600169186464497575.jpg",
+        img: "E8/ed3.png",
         text: "【結局三：T-病毒洩漏】\n你撕開包裹，發現裡面並非器官，而是一支破裂的藍色病毒試管！你吸入了氣化毒素，眼球迅速發白...你成了新的怪物。",
         choices: [{ text: "重新開始", action: () => reset(), next: "s1" }]
     },
 
     // 失敗死亡
     dead_zombie: {
-        img: "https://generativeai.pub/user_resource/watermarked_img_17186736140447456585.jpg",
+        img: "E8/dd1.png",
         text: "【你死了】你開槍太慢或沒瞄準！女子咬碎了你的喉嚨...",
         choices: [{ text: "重新嘗試", action: () => reset(), next: "s1" }]
     },
     dead_dog: {
-        img: "https://generativeai.pub/user_resource/watermarked_img_3973725070830619369.jpg",
+        img: "E8/dd2.png",
         text: "【你死了】變異犬撲倒了你，撕裂了你的動脈...",
         choices: [{ text: "重新嘗試", action: () => reset(), next: "s1" }]
     }
