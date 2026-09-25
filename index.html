@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>拉昆市：絕境生存 v2.0</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body { background: #050505; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        
+        #game-box {
+            width: 100%; max-width: 430px; height: 95vh; max-height: 880px;
+            background: #0d0d0d; border: 2px solid #333; border-radius: 20px;
+            display: flex; flex-direction: column; overflow: hidden; position: relative;
+            box-shadow: 0 0 35px rgba(139, 0, 0, 0.5);
+        }
+
+        /* 傷勢脈動暗紅特效 */
+        #bloody-vignette {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 5;
+            box-shadow: inset 0 0 50px rgba(255, 0, 0, 0);
+            transition: box-shadow 0.5s ease;
+        }
+
+        /* HUD 狀態欄 */
+        #hud {
+            background: rgba(10, 10, 10, 0.95); padding: 10px 14px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+            border-bottom: 2px solid #8b0000; font-size: 0.8rem; z-index: 10;
+        }
+        .stat-bar { background: #222; border-radius: 4px; overflow: hidden; height: 12px; margin-top: 2px; }
+        .stat-fill { height: 100%; width: 100%; transition: width 0.3s; }
+        .hp-fill { background: #ff3333; }
+        .pkg-fill { background: #00ff66; }
+
+        /* 畫面區域 */
+        #view-panel { flex: 1.3; position: relative; background: #000; overflow: hidden; }
+        #view-img { width: 100%; height: 100%; object-fit: cover; filter: brightness(0.9); }
+        
+        /* 搖曳式開火瞄準 QTE */
+        #aim-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(139, 0, 0, 0.2); display: none; z-index: 20;
+        }
+        #aim-target {
+            position: absolute; width: 64px; height: 64px;
+            border: 3px solid #ff3333; border-radius: 50%;
+            background: rgba(255, 0, 0, 0.3);
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; transform: translate(-50%, -50%);
+            box-shadow: 0 0 15px #ff0000;
+        }
+        #aim-target::after {
+            content: ''; width: 8px; height: 8px; background: #fff; border-radius: 50%;
+        }
+        #aim-timer-bar {
+            position: absolute; bottom: 10px; left: 10%; width: 80%; height: 8px;
+            background: #333; border-radius: 4px; overflow: hidden;
+        }
+        #aim-timer-fill { height: 100%; background: #ff0000; width: 100%; }
+
+        /* 文字與對話介面 */
+        #ui-panel { flex: 1.1; background: #141414; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; z-index: 10; }
+        #story-text { font-size: 0.88rem; line-height: 1.5; color: #ccc; min-height: 65px; }
+        
+        .choice-btn {
+            background: #222; color: #fff; border: 1px solid #444; padding: 10px 12px;
+            border-radius: 6px; font-size: 0.85rem; cursor: pointer; text-align: left;
+            margin-top: 6px; width: 100%; transition: background 0.2s;
+        }
+        .choice-btn:active { background: #8b0000; border-color: #ff0000; }
+        .danger-btn { border-color: #ff3333; background: #3a0d0d; }
+    </style>
+</head>
+<body>
+
+<div id="game-box">
+    <div id="bloody-vignette"></div>
+
+    <div id="hud">
+        <div>血量: <div class="stat-bar"><div id="hp-bar" class="stat-fill hp-fill"></div></div></div>
+        <div>包裹狀況: <div class="stat-bar"><div id="pkg-bar" class="stat-fill pkg-fill"></div></div></div>
+        <div>子彈: <strong id="ammo-txt" style="color:#ffcc00;">6 發</strong></div>
+        <div>米歇爾信任: <strong id="trust-txt" style="color:#33ccff;">50%</strong></div>
+    </div>
+
+    <div id="view-panel">
+        <img id="view-img" src="" alt="Scene">
+        
+        <!-- 搖曳動態瞄準系統 -->
+        <div id="aim-overlay">
+            <div id="aim-target"></div>
+            <div id="aim-timer-bar"><div id="aim-timer-fill"></div></div>
+        </div>
+    </div>
+
+    <div id="ui-panel">
+        <div id="story-text">故事載入中...</div>
+        <div id="choices-box"></div>
+    </div>
+</div>
+
+<script>
+let state = { hp: 100, pkg: 100, ammo: 6, trust: 50 };
+let aimAnim = null;
+let aimTimer = null;
+
+const scenes = {
+    s1: {
+        img: "https://generativeai.pub/user_resource/watermarked_img_12000240877718187182.jpg",
+        text: "拉昆市醫院：器官送達後，你接下一個標註「極高危險」的神秘包裹。冷卻計時開始！",
+        choices: [
+            { text: "攜帶包裹並駕駛汽車出發", next: "s2" }
+        ]
+    },
+    s2: {
+        img: "https://generativeai.pub/user_resource/watermarked_img_868131843336331006.jpg",
+        text: "大雨中，米歇爾激動地吼道：「我懷孕了！布萊恩，我們必須離開拉昆市！」",
+        choices: [
+            { text: "【溫柔安撫】「別擔心，送完這趟我們就離開。」(信任+25)", action: () => state.trust += 25, next: "s3" },
+            { text: "【咆哮對罵】「現在不是談這個的時候！」(信任-25)", action: () => state.trust -= 25, next: "s3" }
+        ]
+    },
+    s3: {
+        img: "https://generativeai.pub/user_resource/watermarked_img_1325755057257697478.jpg",
+        text: "！砰！路邊突現人形！你來不及煞車重重撞上了一名橫過馬路的女子！",
+        choices: [
+            { text: "將女子搬上車後座，此時前方出現警車紅藍燈...", next: "s4" }
+        ]
+    },
+    s4: {
+        img: "https://generativeai.pub/user_resource/watermarked_img_12591389124246968629.jpg",
+        text: "威爾遜副警長靠近：「發生了什麼？將女子交給我，你開車跟在我後面。」",
+        choices: [
+            { text: "配合副警長，開車緊跟警車", next: "s5" }
+        ]
+    },
+    s5: {
+        img: "https://generativeai.pub/user_resource/watermarked_img_9007862943657356459.jpg",
+        text: "警車突然失控翻覆！火光中副警長當場死亡，受傷女子從車內消失...",
+        choices: [
+            { text: "下車查看警車殘骸", next: "aim1" }
+        ]
+    },
+    aim1: {
+        img: "https://generativeai.pub/user_resource/watermarked_img_17186736140447456585.jpg",
+        text: "【!開槍警告!】狂暴女子突然張開血盆大口朝你猛撲！快速點擊搖曳的瞄準點！",
+        isAim: true,
+        aimSpeed: 4,
+        timeLimit: 3000,
+        onSuccess: "s6",
+        onFail: "dead_zombie"
+    },
+    s6: {
+        img: "https://generativeai.pub/user_resource/watermarked_img_10600169186464497575.jpg",
+        text: "【砰！】你成功擊斃女子！但流彈擊中汽車引擎，包裹冷卻系統毀損！",
+        action: () => { state.ammo = 4; state.pkg -= 30; },
+        choices: [
+            { text: "抱著包裹與米歇爾徒步前往附近的廢棄房屋", next: "aim2" }
+        ]
+    },
+    aim2: {
+        img: "https://generativeai.pub/user_resource/watermarked_img_3973725070830619369.jpg",
+        text: "【!開槍警告!】樹林中突襲！一隻皮膚潰爛的變異犬向你臉頰飛撲！",
+        isAim: true,
+        aimSpeed: 7, // 速度更快
+        timeLimit: 2500,
+        onSuccess: "branch_choice",
+        onFail: "dead_dog"
+    },
+    
+    // 多分支結局選擇點
+    branch_choice: {
+        img: "https://generativeai.pub/user_resource/watermarked_img_3973725070830619369.jpg",
+        text: "擊斃變異犬後，你們逃到了廢棄小屋門口。房屋內部傳來不尋常的怪異低吟聲，而神秘包裹開始冒出異樣熱氣...",
+        choices: [
+            { text: "【結局 1 分支】強行闖入房屋，堅守包裹等待救援", next: "end1" },
+            { text: "【結局 2 分支】將神秘包裹拋棄在門外，帶著米歇爾連夜逃離拉昆市", next: "end2" },
+            { text: "【結局 3 分支】私自打開神秘包裹，查看裡面的秘密", next: "end3" }
+        ]
+    },
+
+    // 結局 1
+    end1: {
+        img: "https://generativeai.pub/user_resource/watermarked_img_12000240877718187182.jpg",
+        text: "【結局一：毀滅守護者】\n你們闖入房屋堅守包裹，卻吸引了整群感染者包圍。救援直升機始終沒有出現...最終你們被淹沒在黑夜中。",
+        choices: [{ text: "重新開始", action: () => reset(), next: "s1" }]
+    },
+    // 結局 2
+    end2: {
+        img: "https://generativeai.pub/user_resource/watermarked_img_868131843336331006.jpg",
+        text: "【結局二：逃離噩夢】\n你果斷拋棄包裹並拉著米歇爾的手奔向山林，成功在拉昆市全面封鎖前逃離。雖然淪為通緝犯，但你們保住了性命與未出生孩子。",
+        choices: [{ text: "重新開始", action: () => reset(), next: "s1" }]
+    },
+    // 結局 3
+    end3: {
+        img: "https://generativeai.pub/user_resource/watermarked_img_10600169186464497575.jpg",
+        text: "【結局三：T-病毒洩漏】\n你撕開包裹，發現裡面並非器官，而是一支破裂的藍色病毒試管！你吸入了氣化毒素，眼球迅速發白...你成了新的怪物。",
+        choices: [{ text: "重新開始", action: () => reset(), next: "s1" }]
+    },
+
+    // 失敗死亡
+    dead_zombie: {
+        img: "https://generativeai.pub/user_resource/watermarked_img_17186736140447456585.jpg",
+        text: "【你死了】你開槍太慢或沒瞄準！女子咬碎了你的喉嚨...",
+        choices: [{ text: "重新嘗試", action: () => reset(), next: "s1" }]
+    },
+    dead_dog: {
+        img: "https://generativeai.pub/user_resource/watermarked_img_3973725070830619369.jpg",
+        text: "【你死了】變異犬撲倒了你，撕裂了你的動脈...",
+        choices: [{ text: "重新嘗試", action: () => reset(), next: "s1" }]
+    }
+};
+
+function reset() {
+    state = { hp: 100, pkg: 100, ammo: 6, trust: 50 };
+}
+
+function updateHUD() {
+    document.getElementById('hp-bar').style.width = state.hp + '%';
+    document.getElementById('pkg-bar').style.width = state.pkg + '%';
+    document.getElementById('ammo-txt').innerText = state.ammo + ' 發';
+    document.getElementById('trust-txt').innerText = state.trust + '%';
+}
+
+// 搖曳式動態瞄準邏輯
+function startAimQTE(scene) {
+    const overlay = document.getElementById('aim-overlay');
+    const target = document.getElementById('aim-target');
+    const fill = document.getElementById('aim-timer-fill');
+    
+    overlay.style.display = 'block';
+    fill.style.width = '100%';
+
+    let posX = 150, posY = 150;
+    let velX = (Math.random() - 0.5) * scene.aimSpeed * 2;
+    let velY = (Math.random() - 0.5) * scene.aimSpeed * 2;
+    const bounds = overlay.getBoundingClientRect();
+
+    // 瞄準圈搖曳移動動畫
+    function animateAim() {
+        posX += velX;
+        posY += velY;
+
+        if (posX <= 30 || posX >= bounds.width - 30) velX *= -1;
+        if (posY <= 30 || posY >= bounds.height - 30) velY *= -1;
+
+        // 加一點隨機擺動 (模擬手抖)
+        velX += (Math.random() - 0.5) * 0.8;
+        velY += (Math.random() - 0.5) * 0.8;
+
+        target.style.left = posX + 'px';
+        target.style.top = posY + 'px';
+
+        aimAnim = requestAnimationFrame(animateAim);
+    }
+    animateAim();
+
+    // 倒數計時
+    let startTime = Date.now();
+    aimTimer = setInterval(() => {
+        let elapsed = Date.now() - startTime;
+        let left = Math.max(0, 100 - (elapsed / scene.timeLimit) * 100);
+        fill.style.width = left + '%';
+
+        if (left <= 0) {
+            stopAimQTE();
+            state.hp = 0;
+            renderScene(scene.onFail);
+        }
+    }, 40);
+
+    // 點擊瞄準圈成功開槍
+    target.onclick = (e) => {
+        e.stopPropagation();
+        stopAimQTE();
+        renderScene(scene.onSuccess);
+    };
+}
+
+function stopAimQTE() {
+    cancelAnimationFrame(aimAnim);
+    clearInterval(aimTimer);
+    document.getElementById('aim-overlay').style.display = 'none';
+}
+
+function renderScene(key) {
+    const sc = scenes[key];
+    if (sc.action) sc.action();
+    updateHUD();
+
+    document.getElementById('view-img').src = sc.img;
+    document.getElementById('story-text').innerText = sc.text;
+
+    const box = document.getElementById('choices-box');
+    box.innerHTML = '';
+
+    if (sc.isAim) {
+        startAimQTE(sc);
+    } else {
+        sc.choices.forEach(c => {
+            const btn = document.createElement('button');
+            btn.className = 'choice-btn';
+            btn.innerText = c.text;
+            btn.onclick = () => {
+                if (c.action) c.action();
+                renderScene(c.next);
+            };
+            box.appendChild(btn);
+        });
+    }
+}
+
+renderScene('s1');
+</script>
+</body>
+</html>
