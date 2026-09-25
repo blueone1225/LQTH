@@ -115,7 +115,7 @@ const scenes = {
         ]
     },
     s2: {
-        img: "https://generativeai.pub/user_resource/watermarked_img_868131843336331006.jpg",
+        img: "E8/222.png",
         text: "大雨中，米歇爾激動地吼道：「我懷孕了！布萊恩，我們必須離開拉昆市！」",
         choices: [
             { text: "【溫柔安撫】「別擔心，送完這趟我們就離開。」(信任+25)", action: () => state.trust += 25, next: "s3" },
@@ -123,28 +123,28 @@ const scenes = {
         ]
     },
     s3: {
-        img: "https://generativeai.pub/user_resource/watermarked_img_1325755057257697478.jpg",
+        img: "E8/333.png",
         text: "！砰！路邊突現人形！你來不及煞車重重撞上了一名橫過馬路的女子！",
         choices: [
             { text: "將女子搬上車後座，此時前方出現警車紅藍燈...", next: "s4" }
         ]
     },
     s4: {
-        img: "https://generativeai.pub/user_resource/watermarked_img_12591389124246968629.jpg",
+        img: "E8/444.png",
         text: "威爾遜副警長靠近：「發生了什麼？將女子交給我，你開車跟在我後面。」",
         choices: [
             { text: "配合副警長，開車緊跟警車", next: "s5" }
         ]
     },
     s5: {
-        img: "https://generativeai.pub/user_resource/watermarked_img_9007862943657356459.jpg",
+        img: "E8/555.png",
         text: "警車突然失控翻覆！火光中副警長當場死亡，受傷女子從車內消失...",
         choices: [
             { text: "下車查看警車殘骸", next: "aim1" }
         ]
     },
     aim1: {
-        img: "https://generativeai.pub/user_resource/watermarked_img_17186736140447456585.jpg",
+        img: "E8/666.png",
         text: "【!開槍警告!】狂暴女子突然張開血盆大口朝你猛撲！快速點擊搖曳的瞄準點！",
         isAim: true,
         aimSpeed: 4,
@@ -153,7 +153,7 @@ const scenes = {
         onFail: "dead_zombie"
     },
     s6: {
-        img: "https://generativeai.pub/user_resource/watermarked_img_10600169186464497575.jpg",
+        img: "E8/777.png",
         text: "【砰！】你成功擊斃女子！但流彈擊中汽車引擎，包裹冷卻系統毀損！",
         action: () => { state.ammo = 4; state.pkg -= 30; },
         choices: [
@@ -161,7 +161,7 @@ const scenes = {
         ]
     },
     aim2: {
-        img: "https://generativeai.pub/user_resource/watermarked_img_3973725070830619369.jpg",
+        img: "E8/888.png",
         text: "【!開槍警告!】樹林中突襲！一隻皮膚潰爛的變異犬向你臉頰飛撲！",
         isAim: true,
         aimSpeed: 7, // 速度更快
